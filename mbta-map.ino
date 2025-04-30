@@ -35,12 +35,7 @@ inline void update_time() {
   time_last_updated = time_now;
 }
 
-void setup() {
-  for (int i = 2; i <= 13; i++) {
-    pinMode(i, OUTPUT);
-  }
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
-
+inline unsigned int input_time() {
   while (digitalRead(BUTTON_PIN) != LOW) {}
   digitalWrite(13, HIGH);
   delay(100);
@@ -63,6 +58,16 @@ void setup() {
   // lower 11 bits correspond to minute of day
   minute_of_day = bit_buffer & 0x7FF;
   time_last_updated = millis();
+  return bit_buffer;
+}
+
+void setup() {
+  for (int i = 2; i <= 13; i++) {
+    pinMode(i, OUTPUT);
+  }
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+
+  unsigned int bit_buffer = input_time();
 
   if constexpr(DEBUG) {
     Serial.begin(9600);
