@@ -43,7 +43,7 @@ def correct_time_switch(train_line : list[Union[int, None]]) -> None:
             max_incumbent = time
         else:
             diff = max_incumbent - time
-            if (diff > 720) or (diff <= 700): # Shouldn't be more than a 12 hour difference, nor should time between stations be more than 20 mins
+            if (diff > 720) or (diff < 700): # Shouldn't be more than a 12 hour difference, nor should time between stations be more than 20 mins
                 raise Exception(f'Unexplained time difference. max_incumbent: {max_incumbent}, time: {time}')
             train_line[i] += 720 # Correct for AM/PM switch
             max_incumbent = train_line[i]
@@ -64,6 +64,13 @@ def extract_time_table(rawstr : str, pm_col: int):
     return parsed
 
 
+def flatten_for_c(table : list[list[Union[int, None]]]) -> list[int]:
+    flattened_table : list[int] = []
+    for train_line in table:
+        for stop in train_line:
+            flattened_table.append(-1 if stop is None else stop)
+    return flattened_table
+
 inbound_weekday_table = extract_time_table(inbound_weekday_rawstr, 18)
 for train_line in inbound_weekday_table:
     # Correct for there being two Providences:
@@ -79,14 +86,44 @@ for train_line in inbound_weekday_table:
     train_line.insert(14, None)
     assert len(train_line) == 18
 
-print(inbound_weekday_table)
-print(len(inbound_weekday_table))
-print([len(row) for row in inbound_weekday_table])
-
-weekday_inbound_c : list[int] = []
-for train_line in inbound_weekday_table:
-    for stop in train_line:
-        weekday_inbound_c.append(-1 if stop is None else stop)
+weekday_inbound_c : list[int] = flatten_for_c(inbound_weekday_table)
 
 print(weekday_inbound_c)
-print(len(weekday_inbound_c))
+
+outbound_weekday_rawstr='''1A South Station  4:20 5:25 6:30 7:00 7:30 8:00 8:25 8:57 9:25 10:02 10:25 11:18 12:00 12:20 1:05 1:20 2:05 2:20 2:55 3:20 3:52 4:00 4:20 4:52 5:00 5:37 5:52 6:22 7:05 7:18 8:00 8:35 9:00 9:35 10:45 11:05 11:55
+1A Back Bay  4:25 5:30 6:35 7:05 7:35 8:05 8:30 9:02 9:30 10:07 10:30 11:23 12:05 12:25 1:10 1:25 2:10 2:25 3:00 3:25 3:57 4:05 4:25 4:57 5:05 5:42 5:57 6:27 7:10 7:23 8:05 8:40 9:05 9:40 10:50 - 12:00
+1A Ruggles  4:28 5:33 6:38 7:08 7:38 8:08 8:33 9:05 9:33 10:10 10:33 11:26 12:08 12:28 1:13 1:28 2:13 2:28 3:03 3:28 4:01 4:08 4:28 5:01 5:08 5:46 6:00 6:30 7:13 7:26 8:08 8:43 9:08 9:43 10:53 - 12:03
+1A Forest Hills  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 10:58 - 12:08
+1 Hyde Park  - - - - - - - - 9:41 - - - 12:16 - 1:21 - 2:21 - - - - - - - - - - - 7:21 - 8:16 - 9:16 9:51 11:03 - 12:13
+2 Readville  - - - - - - - - - - - - 12:18 - - - - - - - - - - - - - - - - 7:37 - - 9:18 9:53 - - 12:15
+2 Route 128  4:39 5:44 6:49 7:18 7:49 8:18 8:44 9:15 9:47 10:21 10:44 11:37 12:22 12:39 1:26 1:39 2:26 2:39 3:14 3:39 - 4:19 4:39 - 5:19 5:57 6:11 6:41 7:26 7:41 8:21 8:54 9:22 9:57 11:08 11:37 12:19
+3 Canton Junction  4:45 5:50 6:55 7:24 7:55 8:24 8:50 9:21 9:53 10:27 10:50 11:43 12:28 12:45 1:32 1:45 2:32 2:45 3:20 3:45 - 4:25 4:45 - 5:25 6:03 6:17 6:47 7:32 7:47 8:27 9:00 9:28 10:03 11:14 11:43 12:25
+3 Canton Center  - 5:53 - 7:28 - 8:27 - 9:28 - 10:30 - - 12:31 - 1:35 - 2:35 - 3:24 - - 4:28 - - 5:29 - 6:21 - 7:35 - 8:30 - 9:31 - - 11:46 -
+4 Stoughton  - 6:01 - 7:37 - 8:37 - 9:37 - 10:38 - - 12:39 - 1:43 - 2:43 - 3:34 - - 4:39 - - 5:40 - 6:31 - 7:44 - 8:38 - 9:39 - - 11:55 -
+3 Sharon  4:51 - 7:01 - 8:01 - 8:56 - 9:59 - 10:56 11:49 - 12:51 - 1:51 - 2:51 - 3:51 4:17 - 4:51 5:17 - 6:09 - 6:53 - 7:53 - 9:06 - 10:09 11:20 - 12:31
+5 Mansfield  4:59 - 7:09 - 8:09 - 9:04 - 10:07 - 11:04 11:57 - 12:59 - 1:59 - 2:59 - 3:59 4:25 - 4:59 5:25 - 6:18 - 7:01 - 8:01 - 9:14 - 10:17 11:28 - 12:39
+7 Attleboro  5:07 - 7:17 - 8:17 - 9:12 - 10:15 - 11:12 12:05 - 1:07 - 2:07 - 3:07 - 4:07 4:34 - 5:07 5:34 - 6:28 - 7:09 - 8:09 - 9:22 - 10:25 11:36 - 12:47
+7 South Attleboro  - - - - - - - - - - - 12:15 - - - - - 3:14 - - 4:44 - - - - 6:39 - - - - - - - - - - -
+8 Pawtucket/Central Falls  5:16 - 7:26 - 8:26 - 9:21 - 10:24 - 11:21 12:19 - 1:16 - 2:16 - 3:18 - 4:16 4:48 - 5:16 5:43 - 6:43 - 7:21 - 8:21 - 9:31 - 10:34 11:45 - 12:56
+8 Providence (Arr.)  5:30 - 7:43 - 8:40 - 9:35 - 10:36 - 11:35 12:33 - 1:28 - 2:28 - 3:29 - 4:30 5:00 - 5:31 5:52 - 6:54 - 7:36 - 8:33 - 9:45 - 10:51 12:01 - 1:12
+8 Providence (Dep.)  5:45 - 7:45 - - - - - 10:37 - - - - 1:30 - - - 3:30 - - 5:01 - - 5:53 - 6:55 - - - - - - - - - - -
+9 TF Green Airport  6:00 - 8:00 - - - - - 10:52 - - - - 1:45 - - - 3:44 - - 5:15 - - 6:07 - 7:10 - - - - - - - - - - -
+10 Wickford Junction  6:18 - 8:15 - - - - - 11:13 - - - - 2:05 - - - 4:04 - - 5:35 - - 6:33 - 7:29 - - - - - - - - - - -'''
+
+outbound_weekday_table = extract_time_table(outbound_weekday_rawstr, 12)
+for train_line in outbound_weekday_table:
+    # Correct for there being two Providences:
+    prov_arr = train_line.pop(15)
+    prov_dep = train_line.pop(15)
+    time_to_use = None
+    if prov_arr is not None:
+        time_to_use = prov_arr
+    elif prov_dep is not None:
+        time_to_use = prov_dep
+    train_line.insert(15, time_to_use)
+    assert len(train_line) == 18
+
+outbound_weekday_c = flatten_for_c(outbound_weekday_table)
+
+print(outbound_weekday_c)
+print(len(outbound_weekday_c))
