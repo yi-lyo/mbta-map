@@ -3,6 +3,26 @@
 import re
 from typing import Union
 
+# Station       Inbound     Outbound
+# South Station 17           0
+# Back Bay      16           1
+# Ruggles       15           2
+# Forest Hills* 14           3
+# Hyde Park     13           4
+# Readville     12           5
+# Route 128     11           6
+# Canton J      10           7
+# Canton C*      9           8
+# Stoughton*     8           9
+# Sharon         7          10
+# Mansfield      6          11
+# Attleboro      5          12
+# S Attleboro*   4          13
+# Pawtucket      3          14
+# Providence     2          15
+# TF Green*      1          16
+# Wickford J*    0          17
+
 inbound_weekday_rawstr = '''10 Wickford Junction  - - - - - 6:02 - - 7:02 - - - 8:38 - - - - 11:57 - - - - - 2:25 - - - 4:35 - - - 6:46 - 7:42 - - -
 9 TF Green Airport  - - - - - 6:16 - - 7:16 - - - 8:52 - - - - 12:11 - - - - - 2:39 - - - 4:49 - - - 7:00 - 7:56 - - -
 8 Providence (Arr.)  - - - - - 6:31 - - 7:31 - - - 9:07 - - - - 12:26 - - - - - 2:55 - - - 5:04 - - - 7:15 - 8:11 - - -
@@ -127,3 +147,58 @@ outbound_weekday_c = flatten_for_c(outbound_weekday_table)
 
 print(outbound_weekday_c)
 print(len(outbound_weekday_c))
+
+inbound_weekend_rawstr = '''8 Providence  5:15 8:15 9:45 11:45 1:45 3:45 5:55 7:55 9:25 11:25
+8 Pawtucket/Central Falls  5:21 8:21 9:51 11:51 1:51 3:51 6:01 8:01 9:31 11:31
+7 Attleboro  5:33 8:33 10:03 12:03 2:03 4:03 6:13 8:13 9:43 11:43
+5 Mansfield  5:43 8:43 10:13 12:13 2:13 4:13 6:23 8:23 9:53 11:53
+3 Sharon  5:52 8:52 10:22 12:22 2:22 4:22 6:32 8:32 10:02 12:02
+3 Canton Junction  5:57 8:57 10:27 12:27 2:27 4:27 6:37 8:37 10:07 12:07
+2 Route 128  6:03 9:03 10:33 12:33 2:33 4:33 6:43 8:43 10:13 12:13
+2 Readville  6:07 9:07 10:37 12:37 2:37 4:37 6:47 8:47 10:17 12:17
+1 Hyde Park  6:10 9:10 10:40 12:40 2:40 4:40 6:50 8:50 10:20 12:20
+1A Ruggles  L 6:21 L 9:21 L 10:51 L 12:51 L 2:51 L 4:51 L 7:01 L 9:01 L 10:31 L 12:31
+1A Back Bay  L 6:25 L 9:25 L 10:55 L 12:55 L 2:55 L 4:55 L 7:05 L 9:05 L 10:35 L 12:35
+1A South Station  6:30 9:30 11:00 1:00 3:00 5:00 7:10 9:10 10:40 12:40'''
+
+inbound_weekend_table = extract_time_table(inbound_weekend_rawstr, 4)
+for train_line in inbound_weekend_table:
+    assert len(train_line) == 12
+    # Add missing stations
+    train_line.insert(0, -1) # Wickford Junction
+    train_line.insert(1, -1) # TF Green Airport
+    train_line.insert(4, -1) # South Attleboro
+    train_line.insert(8, -1) # Stoughton
+    train_line.insert(9, -1) # Canton Center
+    train_line.insert(14, -1) # Forest Hills
+    assert len(train_line) == 18
+
+inbound_weekend_c = flatten_for_c(inbound_weekend_table)
+
+print(inbound_weekend_c)
+print(len(inbound_weekend_c))
+
+outbound_weekend_rawstr = '''1A South Station  6:45 7:55 10:15 12:15 2:15 3:45 5:45 7:55 9:55 11:55
+1A Back Bay  6:50 8:00 10:20 12:20 2:20 3:50 5:50 8:00 10:00 12:00
+1A Ruggles  6:53 8:03 10:23 12:23 2:23 3:53 5:53 8:03 10:03 12:03
+1 Hyde Park  7:01 8:11 10:31 12:31 2:31 4:01 6:01 8:11 10:11 12:11
+2 Readville  7:04 8:14 10:34 12:34 2:34 4:04 6:04 8:14 10:14 12:14
+2 Route 128  7:08 8:18 10:38 12:38 2:38 4:08 6:08 8:18 10:18 12:18
+3 Canton Junction  7:14 8:24 10:44 12:44 2:44 4:14 6:14 8:24 10:24 12:24
+3 Sharon  7:19 8:29 10:49 12:49 2:49 4:19 6:19 8:29 10:29 12:29
+5 Mansfield  7:27 8:37 10:57 12:57 2:57 4:27 6:27 8:37 10:37 12:37
+7 Attleboro  7:37 8:47 11:07 1:07 3:07 4:37 6:37 8:47 10:47 12:47
+8 Pawtucket/Central Falls  7:46 8:59 11:16 1:16 3:16 4:46 6:46 8:56 10:56 12:56
+8 Providence  7:58 9:11 11:28 1:28 3:28 5:01 6:58 9:08 11:08 1:08'''
+
+outbound_weekend_table = extract_time_table(outbound_weekend_rawstr, 3)
+for train_line in outbound_weekend_table:
+    assert len(train_line) == 12
+    for i in [3, 8, 9, 13, 16, 17]:
+        train_line.insert(i, -1)
+    assert len(train_line) == 18
+
+outbound_weekend_c = flatten_for_c(outbound_weekend_table)
+
+print(outbound_weekend_c)
+print(len(outbound_weekend_c))
