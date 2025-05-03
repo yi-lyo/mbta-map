@@ -88,27 +88,38 @@ def flatten_for_c(table : list[list[Union[int, None]]]) -> list[int]:
     flattened_table : list[int] = []
     for train_line in table:
         for stop in train_line:
-            flattened_table.append(-1 if stop is None else stop)
+            flattened_table.append(0xFFFF if stop is None else stop)
     return flattened_table
+
+
+def duplicate(l: list[int], index: int) -> None:
+    l.insert(index, l[index])
+
+
+def correct_station_asymmetry(l: list[int], i: int) -> None:
+    if l[i] is None and l[i + 1] is not None:
+        l[i] = l[i + 1]
+    elif l[i + 1] is None and l[i] is not None:
+        l[i + 1] = l[1]
+
 
 inbound_weekday_table = extract_time_table(inbound_weekday_rawstr, 18)
 for train_line in inbound_weekday_table:
-    # Correct for there being two Providences:
-    prov_arr = train_line.pop(2)
-    prov_dep = train_line.pop(2)
-    time_to_use = None
-    if prov_arr is not None:
-        time_to_use = prov_arr
-    elif prov_dep is not None:
-        time_to_use = prov_dep
-    train_line.insert(2, time_to_use)
-    # Insert Forest Hills
-    train_line.insert(14, None)
-    assert len(train_line) == 18
+    for i in range(0, 36, 2):
+        if i == 4: # Providence
+            continue
+        if i == 28: # Forest Hills
+            train_line.insert(i, None)
+            train_line.insert(i, None)
+            continue
+        duplicate(train_line, i)
+    correct_station_asymmetry(train_line, 4)
+    assert len(train_line) == 36
 
 weekday_inbound_c : list[int] = flatten_for_c(inbound_weekday_table)
 
 print(weekday_inbound_c)
+print(len(weekday_inbound_c))
 
 outbound_weekday_rawstr='''1A South Station  4:20 5:25 6:30 7:00 7:30 8:00 8:25 8:57 9:25 10:02 10:25 11:18 12:00 12:20 1:05 1:20 2:05 2:20 2:55 3:20 3:52 4:00 4:20 4:52 5:00 5:37 5:52 6:22 7:05 7:18 8:00 8:35 9:00 9:35 10:45 11:05 11:55
 1A Back Bay  4:25 5:30 6:35 7:05 7:35 8:05 8:30 9:02 9:30 10:07 10:30 11:23 12:05 12:25 1:10 1:25 2:10 2:25 3:00 3:25 3:57 4:05 4:25 4:57 5:05 5:42 5:57 6:27 7:10 7:23 8:05 8:40 9:05 9:40 10:50 - 12:00
@@ -132,16 +143,12 @@ outbound_weekday_rawstr='''1A South Station  4:20 5:25 6:30 7:00 7:30 8:00 8:
 
 outbound_weekday_table = extract_time_table(outbound_weekday_rawstr, 12)
 for train_line in outbound_weekday_table:
-    # Correct for there being two Providences:
-    prov_arr = train_line.pop(15)
-    prov_dep = train_line.pop(15)
-    time_to_use = None
-    if prov_arr is not None:
-        time_to_use = prov_arr
-    elif prov_dep is not None:
-        time_to_use = prov_dep
-    train_line.insert(15, time_to_use)
-    assert len(train_line) == 18
+    for i in range(0, 36, 2):
+        if i == 30: # Providence
+            continue
+        duplicate(train_line, i)
+    correct_station_asymmetry(train_line, 30)
+    assert len(train_line) == 36
 
 outbound_weekday_c = flatten_for_c(outbound_weekday_table)
 
@@ -165,13 +172,15 @@ inbound_weekend_table = extract_time_table(inbound_weekend_rawstr, 4)
 for train_line in inbound_weekend_table:
     assert len(train_line) == 12
     # Add missing stations
-    train_line.insert(0, -1) # Wickford Junction
-    train_line.insert(1, -1) # TF Green Airport
-    train_line.insert(4, -1) # South Attleboro
-    train_line.insert(8, -1) # Stoughton
-    train_line.insert(9, -1) # Canton Center
-    train_line.insert(14, -1) # Forest Hills
-    assert len(train_line) == 18
+    train_line.insert(0, None) # Wickford Junction
+    train_line.insert(1, None) # TF Green Airport
+    train_line.insert(4, None) # South Attleboro
+    train_line.insert(8, None) # Stoughton
+    train_line.insert(9, None) # Canton Center
+    train_line.insert(14, None) # Forest Hills
+    for i in range(0, 36, 2):
+        duplicate(train_line, i)
+    assert len(train_line) == 36
 
 inbound_weekend_c = flatten_for_c(inbound_weekend_table)
 
@@ -195,8 +204,10 @@ outbound_weekend_table = extract_time_table(outbound_weekend_rawstr, 3)
 for train_line in outbound_weekend_table:
     assert len(train_line) == 12
     for i in [3, 8, 9, 13, 16, 17]:
-        train_line.insert(i, -1)
-    assert len(train_line) == 18
+        train_line.insert(i, None)
+    for i in range(0, 36, 2):
+        duplicate(train_line, i)
+    assert len(train_line) == 36
 
 outbound_weekend_c = flatten_for_c(outbound_weekend_table)
 
